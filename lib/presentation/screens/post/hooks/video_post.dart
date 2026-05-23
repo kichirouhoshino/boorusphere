@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -11,18 +13,27 @@ class VideoPostSource {
   VideoPostSource({
     this.progress = const DownloadProgress('', 0, 0),
     this.controller,
+    this.error,
   });
 
   final DownloadProgress progress;
   final VideoPlayerController? controller;
 
+  /// Non-null when the video player failed to initialize (e.g. unsupported
+  /// codec). The UI should show a fallback/error state in this case.
+  final String? error;
+
+  bool get hasError => error != null;
+
   VideoPostSource copyWith({
     DownloadProgress? progress,
     VideoPlayerController? controller,
+    String? error,
   }) {
     return VideoPostSource(
       progress: progress ?? this.progress,
       controller: controller ?? this.controller,
+      error: error ?? this.error,
     );
   }
 
@@ -30,11 +41,13 @@ class VideoPostSource {
   bool operator ==(covariant VideoPostSource other) {
     if (identical(this, other)) return true;
 
-    return other.progress == progress && other.controller == controller;
+    return other.progress == progress &&
+        other.controller == controller &&
+        other.error == error;
   }
 
   @override
-  int get hashCode => progress.hashCode ^ controller.hashCode;
+  int get hashCode => progress.hashCode ^ controller.hashCode ^ error.hashCode;
 }
 
 VideoPostSource useVideoPostSource(
@@ -88,27 +101,28 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
   Future<void> createController() async {
     if (!hook.active) return;
 
-    //final cache = hook.ref.read(cacheManagerProvider);
-    //final cookieJar = hook.ref.read(cookieJarProvider);
-    //final cookies =
-    //    await cookieJar.loadForRequest(hook.post.content.url.toUri());
     final headers =
         hook.ref.read(postHeadersFactoryProvider(hook.post, cookies: []));
 
     final uri = Uri.parse(hook.post.content.url);
-    final controller = VideoPlayerController.networkUrl(uri,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-        httpHeaders: headers)
-      ..setLooping(true);
-    final prog = DownloadProgress(hook.post.content.url, 1, 1);
 
-    setState(() {
-      source = source.copyWith(controller: controller, progress: prog);
-    });
-    //cache
-    //    .getFileStream(hook.post.content.url,
-    //        headers: headers, withProgress: true)
-    //    .listen(onFileStream);
+    try {
+      final controller = VideoPlayerController.networkUrl(uri,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          httpHeaders: headers);
+      unawaited(controller.setLooping(true));
+      final prog = DownloadProgress(hook.post.content.url, 1, 1);
+
+      setState(() {
+        source = source.copyWith(controller: controller, progress: prog);
+      });
+    } catch (e) {
+      // Codec or platform not supported — surface the error to the UI so it
+      // can show a graceful fallback rather than a blank/stuck screen.
+      setState(() {
+        source = VideoPostSource(error: e.toString());
+      });
+    }
   }
 
   void destroyController() {

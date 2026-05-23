@@ -23,14 +23,17 @@ class HomeContent extends HookConsumerWidget {
     final pageState = ref.watch(pageStateProvider);
     final session = ref.watch(searchSessionProvider);
     final servers = ref.watch(serverStateProvider);
-    final blockedTags = ref.watch(tagsBlockerStateProvider.select(
-      (state) => state.values
+    final blockerState = ref.watch(tagsBlockerStateProvider);
+    final blockedTags = useMemoized(() {
+      return blockerState.values
           .where((it) => it.serverId.isEmpty || it.serverId == session.serverId)
-          .map((it) => it.name),
-    ));
+          .map((it) => it.name)
+          .toSet();
+    }, [blockerState, session.serverId]);
 
     final filteredPosts = pageState.data.posts
-        .where((it) => !it.allTags.any(blockedTags.contains));
+        .where((it) => !it.allTags.any(blockedTags.contains))
+        .toList();
 
     useEffect(() {
       if (servers.isNotEmpty) {
@@ -44,19 +47,24 @@ class HomeContent extends HookConsumerWidget {
     final timelineController = ref.watch(timelineControllerProvider);
     final scrollController = timelineController.scrollController;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!scrollController.hasClients ||
-          pageState is DataFetchResult ||
-          pageState is LoadingFetchResult) return;
+    // Register the post-frame auto-scroll callback only when relevant state
+    // changes (not on every rebuild), to avoid accumulating stale callbacks.
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!scrollController.hasClients ||
+            pageState is DataFetchResult ||
+            pageState is LoadingFetchResult) return;
 
-      if (scrollController.position.extentAfter < 300) {
-        scrollController.animateTo(
-          scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.fastOutSlowIn,
-        );
-      }
-    });
+        if (scrollController.position.extentAfter < 300) {
+          scrollController.animateTo(
+            scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.fastOutSlowIn,
+          );
+        }
+      });
+      return null;
+    }, [pageState]);
 
     final isNewSearch =
         pageState is! DataFetchResult && pageState.data.option.clear;

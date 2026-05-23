@@ -61,3 +61,6 @@ releasenote.md
 
 # Direnv
 .direnv
+
+# FVM Version Cache
+.fvm/

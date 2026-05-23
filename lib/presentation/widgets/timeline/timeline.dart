@@ -21,7 +21,7 @@ import 'package:tinycolor2/tinycolor2.dart';
 class Timeline extends ConsumerWidget {
   const Timeline({super.key, required this.posts});
 
-  final Iterable<Post> posts;
+  final List<Post> posts;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -129,10 +129,11 @@ class _ThumbnailImage extends ConsumerWidget {
     final headers = ref.watch(postHeadersFactoryProvider(post));
     // limit timeline thumbnail to 18:9
     final isLong = post.aspectRatio < 0.5;
+    final displayRatio = isLong ? 0.5 : post.aspectRatio;
     final screen =
         context.mediaQuery.size * context.mediaQuery.devicePixelRatio;
     final cacheWidth = screen.width / (gridSize * 1.3);
-    final cacheHeight = cacheWidth / post.aspectRatio;
+    final cacheHeight = cacheWidth / displayRatio;
 
     final image = AspectRatio(
       aspectRatio: isLong ? 0.5 : post.aspectRatio,

@@ -26,9 +26,9 @@ rename_apk() {
 
 # Build release APKs
 echo "Building universal APK..."
-flutter build apk --build-number=$BUILD_NUMBER --build-name=$VERSION --release
+fvm flutter build apk --build-number=$BUILD_NUMBER --build-name=$VERSION --release
 echo "Building ABI-specific APKs..."
-flutter build apk --split-per-abi --build-number=$BUILD_NUMBER --build-name=$VERSION --release
+fvm flutter build apk --split-per-abi --build-number=$BUILD_NUMBER --build-name=$VERSION --release
 
 # Rename APK files based on architecture
 cd build/app/outputs/flutter-apk

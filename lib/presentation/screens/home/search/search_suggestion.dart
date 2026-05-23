@@ -17,12 +17,15 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class SearchSuggestion extends HookConsumerWidget {
-  const SearchSuggestion({super.key});
+  const SearchSuggestion({super.key, required this.isAnimating});
+
+  final bool isAnimating;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isBlurAllowed =
-        ref.watch(uiSettingStateProvider.select((ui) => ui.blur));
+        ref.watch(uiSettingStateProvider.select((ui) => ui.blur)) &&
+            !isAnimating;
 
     return Container(
       color: context.theme.scaffoldBackgroundColor.withOpacity(
@@ -35,8 +38,8 @@ class SearchSuggestion extends HookConsumerWidget {
                 : 0.98,
       ),
       child: BlurBackdrop(
-        sigmaX: 12,
-        sigmaY: 12,
+        sigmaX: 7,
+        sigmaY: 7,
         blur: isBlurAllowed,
         child: const Stack(
           alignment: Alignment.bottomCenter,
@@ -64,6 +67,33 @@ class SearchSuggestion extends HookConsumerWidget {
 class _SearchHistoryHeader extends ConsumerWidget {
   const _SearchHistoryHeader();
 
+  Future<bool?> _showConfirmDialog(BuildContext context) {
+    return showDialog<bool?>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(context.t.clear),
+          icon: const Icon(Icons.delete_forever),
+          content: Text('${context.t.clear} ${context.t.searchHistory}?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                context.navigator.pop();
+              },
+              child: Text(context.t.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.navigator.pop(true);
+              },
+              child: Text(context.t.clear),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchBar = ref.watch(searchBarControllerProvider);
@@ -80,7 +110,13 @@ class _SearchHistoryHeader extends ConsumerWidget {
           children: [
             Text('${context.t.recently}: ${searchBar.value}'),
             TextButton(
-              onPressed: ref.read(searchHistoryStateProvider.notifier).clear,
+              onPressed: () {
+                _showConfirmDialog(context).then((value) {
+                  if (value ?? false) {
+                    ref.read(searchHistoryStateProvider.notifier).clear();
+                  }
+                });
+              },
               child: Text(context.t.clear),
             ),
           ],

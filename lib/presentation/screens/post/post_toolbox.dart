@@ -102,9 +102,12 @@ class PostFavoriteButton extends HookConsumerWidget {
     final favorites = ref.watch(favoritePostStateProvider);
     final animator =
         useAnimationController(duration: const Duration(milliseconds: 300));
-    final animation = useAnimation(
-        ColorTween(begin: Colors.white, end: Colors.pink.shade300)
-            .animate(animator));
+    final colorAnimation = useMemoized(
+      () => ColorTween(begin: Colors.white, end: Colors.pink.shade300)
+          .animate(animator),
+      [animator],
+    );
+    final animation = useAnimation(colorAnimation);
     final isFav = favorites.contains(post);
     isFav ? animator.forward() : animator.reverse();
 

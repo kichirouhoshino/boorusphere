@@ -219,6 +219,14 @@
       "title": "Clear cache",
       "desc": "Clear loaded content from cache",
       "done": "Cache cleared"
+    },
+    "video_unsupported": {
+      "title": "Video codec not supported",
+      "desc": "This video uses a codec that is not supported on this device"
+    },
+    "video_always_external": {
+      "title": "Always open videos externally",
+      "desc": "Open all videos in an external app instead of the in-app player"
     }
   },
   "data_backup": {

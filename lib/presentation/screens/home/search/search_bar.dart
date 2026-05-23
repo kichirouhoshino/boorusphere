@@ -66,8 +66,8 @@ class HomeSearchBar extends HookConsumerWidget {
 
     return RepaintBoundary(
       child: BlurBackdrop(
-        sigmaX: 8,
-        sigmaY: 8,
+        sigmaX: 5,
+        sigmaY: 5,
         blur: isBlurAllowed,
         child: Container(
           decoration: BoxDecoration(

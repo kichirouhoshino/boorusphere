@@ -88,6 +88,7 @@ class Boorusphere extends HookConsumerWidget {
     return AppThemeBuilder(
       builder: (context, appTheme) => MaterialApp.router(
         debugShowCheckedModeBanner: false,
+        themeAnimationDuration: Duration.zero,
         title: 'Boorusphere',
         theme: appTheme.day,
         darkTheme: isMidnight ? appTheme.midnight : appTheme.night,

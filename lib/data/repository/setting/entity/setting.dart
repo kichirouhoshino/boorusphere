@@ -13,6 +13,7 @@ enum Setting {
   uiTimelineGrid,
   uiLanguage,
   videoPlayerMuted,
+  videoAlwaysExternal,
   imeIncognito,
   searchRating;
 }

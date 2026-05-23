@@ -183,6 +183,10 @@ class _SlidableContainer extends HookConsumerWidget {
       drawer.setAnimator(animator);
     }, [drawer]);
 
+    final drawerWidget = RepaintBoundary(
+      child: HomeDrawer(maxWidth: maxDrawerWidth),
+    );
+
     return GestureDetector(
       onHorizontalDragStart: (details) {
         final dragWidth = edgeDragWidth ?? context.mediaQuery.size.width / 2;
@@ -222,9 +226,11 @@ class _SlidableContainer extends HookConsumerWidget {
       },
       child: AnimatedBuilder(
         animation: tween,
-        child: Material(
-          color: context.theme.scaffoldBackgroundColor,
-          child: body,
+        child: RepaintBoundary(
+          child: Material(
+            color: context.theme.scaffoldBackgroundColor,
+            child: body,
+          ),
         ),
         builder: (context, child) {
           final slide = maxDrawerWidth * tween.value;
@@ -236,7 +242,7 @@ class _SlidableContainer extends HookConsumerWidget {
                       (1 - tween.value) * (maxDrawerWidth / 2), 0, 0)
                   ..translate(slide - maxDrawerWidth),
                 alignment: Alignment.centerLeft,
-                child: HomeDrawer(maxWidth: maxDrawerWidth),
+                child: drawerWidget,
               ),
               Transform.translate(
                 offset: Offset(slide, 0),

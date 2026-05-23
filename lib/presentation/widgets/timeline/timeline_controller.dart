@@ -17,10 +17,20 @@ class TimelineController extends ChangeNotifier {
   final AutoScrollController scrollController;
   final Future<void> Function()? onLoadMore;
 
+  // Guard against re-entrant / concurrent load-more calls that would stack up
+  // on every scroll tick and cause excessive rebuilds.
+  bool _loading = false;
+
   Future<void> _autoLoadMore() async {
+    if (_loading) return;
     if (!scrollController.hasClients) return;
     if (scrollController.position.extentAfter < 200) {
-      await onLoadMore?.call();
+      _loading = true;
+      try {
+        await onLoadMore?.call();
+      } finally {
+        _loading = false;
+      }
     }
   }
 

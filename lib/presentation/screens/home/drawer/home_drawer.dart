@@ -82,6 +82,14 @@ class _Footer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
 
+    navigate(PageRouteInfo route) {
+      ref.read(homeDrawerControllerProvider).close().then((_) {
+        if (context.mounted) {
+          context.router.push(route);
+        }
+      });
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -90,27 +98,27 @@ class _Footer extends ConsumerWidget {
         ListTile(
           title: Text(context.t.downloads.title),
           leading: const Icon(Icons.cloud_download),
-          onTap: () => context.router.push(DownloadsRoute(session: session)),
+          onTap: () => navigate(DownloadsRoute(session: session)),
         ),
         ListTile(
           title: Text(context.t.favorites.title),
           leading: const Icon(Icons.favorite_border),
-          onTap: () => context.router.push(FavoritesRoute(session: session)),
+          onTap: () => navigate(FavoritesRoute(session: session)),
         ),
         ListTile(
           title: Text(context.t.servers.title),
           leading: const Icon(Icons.public),
-          onTap: () => context.router.push(ServerRoute(session: session)),
+          onTap: () => navigate(ServerRoute(session: session)),
         ),
         ListTile(
           title: Text(context.t.tagsBlocker.title),
           leading: const Icon(Icons.block),
-          onTap: () => context.router.push(const TagsBlockerRoute()),
+          onTap: () => navigate(const TagsBlockerRoute()),
         ),
         ListTile(
           title: Text(context.t.settings.title),
           leading: const Icon(Icons.settings),
-          onTap: () => context.router.push(const SettingsRoute()),
+          onTap: () => navigate(const SettingsRoute()),
         ),
         const AppVersionTile(),
       ],
@@ -181,7 +189,13 @@ class AppVersionTile extends ConsumerWidget {
         orElse: () => const Text('Boorusphere'),
       ),
       leading: const Icon(Icons.info_outline),
-      onTap: () => context.router.push(const AboutRoute()),
+      onTap: () {
+        ref.read(homeDrawerControllerProvider).close().then((_) {
+          if (context.mounted) {
+            context.router.push(const AboutRoute());
+          }
+        });
+      },
     );
 
     return appVersions.maybeWhen(
@@ -200,7 +214,13 @@ class AppVersionTile extends ConsumerWidget {
             ),
             subtitle: Text(
                 context.t.updater.progress(progress: updateProgress.progress)),
-            onTap: () => context.router.push(const AboutRoute()),
+            onTap: () {
+              ref.read(homeDrawerControllerProvider).close().then((_) {
+                if (context.mounted) {
+                  context.router.push(const AboutRoute());
+                }
+              });
+            },
           );
         }
         return ListTile(
@@ -212,7 +232,11 @@ class AppVersionTile extends ConsumerWidget {
                 : context.t.changelog.view,
           ),
           onTap: () {
-            context.router.push(const AboutRoute());
+            ref.read(homeDrawerControllerProvider).close().then((_) {
+              if (context.mounted) {
+                context.router.push(const AboutRoute());
+              }
+            });
           },
         );
       },
@@ -274,6 +298,7 @@ class _ServerSelection extends ConsumerWidget {
                 .withAlpha(context.isLightThemed ? 50 : 25),
             onTap: () {
               ref.read(homeDrawerControllerProvider).close().then((value) {
+                if (!context.mounted) return;
                 if (it.id != serverActive.id) {
                   context.router.push(
                       HomeRoute(session: session.copyWith(serverId: it.id)));

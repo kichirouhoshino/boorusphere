@@ -29,12 +29,12 @@ class PostViewer extends HookConsumerWidget {
   });
 
   final int initial;
-  final Iterable<Post> posts;
+  final List<Post> posts;
 
   static void open(
     BuildContext context, {
     required int index,
-    required Iterable<Post> posts,
+    required List<Post> posts,
   }) {
     context.navigator.push(
       SlidePageRoute(
@@ -81,7 +81,7 @@ class PostViewer extends HookConsumerWidget {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (didPop, _) async {
-        ref.watch(fullscreenStateProvider.notifier).reset();
+        ref.read(fullscreenStateProvider.notifier).reset();
         context.scaffoldMessenger.removeCurrentSnackBar();
       },
       child: Scaffold(

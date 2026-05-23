@@ -37,12 +37,13 @@ class PageState extends _$PageState {
     return ref.read(serverStateProvider).getById(session.serverId);
   }
 
-  Iterable<String> get blockedTags {
+  Set<String> get blockedTags {
     return ref
         .read(tagsBlockerStateProvider)
         .values
         .where((it) => it.serverId.isEmpty || it.serverId == _server.id)
-        .map((it) => it.name);
+        .map((it) => it.name)
+        .toSet();
   }
 
   Future<void> update(PageOption Function(PageOption) updater) async {

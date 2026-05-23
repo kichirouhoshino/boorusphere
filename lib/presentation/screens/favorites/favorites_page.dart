@@ -13,6 +13,7 @@ import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
@@ -64,7 +65,7 @@ class _EmptyView extends StatelessWidget {
   }
 }
 
-class _Pager extends ConsumerWidget {
+class _Pager extends HookConsumerWidget {
   const _Pager(this.posts);
 
   final Iterable<Post> posts;
@@ -73,13 +74,15 @@ class _Pager extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final servers = ref.watch(serverStateProvider);
 
-    final pages = posts
-        .groupListsBy(
-          (e) => servers.getById(e.serverId, or: Server.empty),
-        )
-        .entries
-        .where((it) => it.key != Server.empty)
-        .sortedBy((it) => it.key.id);
+    final pages = useMemoized(() {
+      return posts
+          .groupListsBy(
+            (e) => servers.getById(e.serverId, or: Server.empty),
+          )
+          .entries
+          .where((it) => it.key != Server.empty)
+          .sortedBy((it) => it.key.id);
+    }, [posts, servers]);
 
     return DefaultTabController(
       length: pages.length,
@@ -148,7 +151,7 @@ class _Content extends ConsumerWidget {
         SliverSafeArea(
           sliver: SliverPadding(
             padding: const EdgeInsets.all(10),
-            sliver: Timeline(posts: posts),
+            sliver: Timeline(posts: posts.toList()),
           ),
         ),
       ],

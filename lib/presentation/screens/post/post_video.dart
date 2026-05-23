@@ -14,6 +14,7 @@ import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -84,7 +85,9 @@ class _PostVideoContent extends HookConsumerWidget {
     final isPlaying = useState(true);
     final hideTimer = useState(Timer(const Duration(seconds: 2), () {}));
     final source = useVideoPostSource(ref, post: post, active: isActive);
-    final controller = isBlur.value ? null : source.controller;
+    final alwaysExternal = contentSettings.videoAlwaysExternal;
+    final controller =
+        isBlur.value || alwaysExternal ? null : source.controller;
 
     onVisibilityChange(bool value) {
       showOverlay.value = value;
@@ -111,7 +114,7 @@ class _PostVideoContent extends HookConsumerWidget {
     }, []);
 
     useEffect(() {
-      controller?.initialize().whenComplete(() async {
+      controller?.initialize().then((_) async {
         onFirstFrame() {
           controller.removeListener(onFirstFrame);
           markMayNeedRebuild();
@@ -123,8 +126,17 @@ class _PostVideoContent extends HookConsumerWidget {
           await controller.play();
           scheduleHide();
         }
+      }).catchError((_) {
+        // initialize() can also throw for codec errors not caught during
+        // controller construction — markMayNeedRebuild so the error overlay
+        // renders once source.hasError is set by the hook.
+        markMayNeedRebuild();
       });
     }, [controller]);
+
+    // Show the codec error / always-external overlay when the in-app player
+    // cannot play the video (unsupported codec) or the user prefers external.
+    final showExternalOverlay = source.hasError || alwaysExternal;
 
     return Stack(
       alignment: Alignment.center,
@@ -150,54 +162,61 @@ class _PostVideoContent extends HookConsumerWidget {
             ),
           ),
         ),
-        GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () {
-            onVisibilityChange.call(!showOverlay.value);
-          },
-          child: Container(
-            color: showPauseOverlay.value ? Colors.black38 : Colors.transparent,
-            child: Visibility(
-              visible: showOverlay.value,
-              replacement: const SizedBox.expand(),
-              child: SafeArea(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Visibility(
-                      visible: showPauseOverlay.value,
-                      child: _PlayPauseOverlay(
+        if (showExternalOverlay)
+          _CodecErrorOverlay(
+            url: post.content.url,
+            alwaysExternal: alwaysExternal,
+          )
+        else
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              onVisibilityChange.call(!showOverlay.value);
+            },
+            child: Container(
+              color:
+                  showPauseOverlay.value ? Colors.black38 : Colors.transparent,
+              child: Visibility(
+                visible: showOverlay.value,
+                replacement: const SizedBox.expand(),
+                child: SafeArea(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Visibility(
+                        visible: showPauseOverlay.value,
+                        child: _PlayPauseOverlay(
+                          isPlaying: isPlaying.value,
+                          onPressed: () {
+                            if (controller != null) {
+                              isPlaying.value = !controller.value.isPlaying;
+                              controller.value.isPlaying
+                                  ? controller.pause()
+                                  : controller.play();
+                              scheduleHide();
+                            } else {
+                              isPlaying.value = !isPlaying.value;
+                            }
+                          },
+                        ),
+                      ),
+                      _ToolboxOverlay(
                         isPlaying: isPlaying.value,
-                        onPressed: () {
-                          if (controller != null) {
-                            isPlaying.value = !controller.value.isPlaying;
-                            controller.value.isPlaying
-                                ? controller.pause()
-                                : controller.play();
-                            scheduleHide();
-                          } else {
-                            isPlaying.value = !isPlaying.value;
-                          }
+                        source: source,
+                        post: post,
+                        isMuted: contentSettings.videoMuted,
+                        isFullscreen: fullscreen,
+                        onAutoHideRequest: scheduleHide,
+                        onPlayChange: (value) {
+                          isPlaying.value = value;
                         },
                       ),
-                    ),
-                    _ToolboxOverlay(
-                      isPlaying: isPlaying.value,
-                      source: source,
-                      post: post,
-                      isMuted: contentSettings.videoMuted,
-                      isFullscreen: fullscreen,
-                      onAutoHideRequest: scheduleHide,
-                      onPlayChange: (value) {
-                        isPlaying.value = value;
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
         if (isBlur.value)
           Positioned(
             bottom: QuickBar.preferredBottomPosition(context) + 24,
@@ -210,6 +229,71 @@ class _PostVideoContent extends HookConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Shown when the in-app player fails to initialize (unsupported codec) or
+/// when the user has opted to always open videos in an external app.
+class _CodecErrorOverlay extends StatelessWidget {
+  const _CodecErrorOverlay({
+    required this.url,
+    required this.alwaysExternal,
+  });
+
+  final String url;
+  final bool alwaysExternal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black54,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                alwaysExternal
+                    ? Icons.open_in_new
+                    : Icons.videocam_off_outlined,
+                color: Colors.white70,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                alwaysExternal
+                    ? context.t.settings.videoAlwaysExternal.title
+                    : context.t.settings.videoUnsupported.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                alwaysExternal
+                    ? context.t.settings.videoAlwaysExternal.desc
+                    : context.t.settings.videoUnsupported.desc,
+                style: const TextStyle(color: Colors.white60, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => launchUrl(
+                  Uri.parse(url),
+                  mode: LaunchMode.externalApplication,
+                ),
+                icon: const Icon(Icons.open_in_new),
+                label: Text(context.t.openExternally),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

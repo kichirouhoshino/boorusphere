@@ -100,6 +100,8 @@ android {
             } else {
                 signingConfig signingConfigs.debug
             }
+            minifyEnabled true
+            shrinkResources true
         }
     }
 }

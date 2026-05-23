@@ -26,20 +26,26 @@ class FullscreenState extends _$FullscreenState {
       await SystemChrome.setPreferredOrientations(orientations);
     }
 
-    state
-        ? await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive)
-        : await unfullscreen();
+    if (state) {
+      // Delay native immersive overlay changes slightly to allow the
+      // 300ms UI slide/fade out animations to finish smoothly first.
+      Future.delayed(const Duration(milliseconds: 250), () async {
+        if (state) {
+          await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+        }
+      });
+    } else {
+      await unfullscreen();
+    }
   }
 
   Future<void> unfullscreen() async {
     final envRepo = ref.read(envRepoProvider);
-    if (envRepo.sdkVersion < 29) {
-      // SDK 28 and below ignores edgeToEdge, so we have to manually reenable them
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [
-        SystemUiOverlay.top,
-        SystemUiOverlay.bottom,
-      ]);
-    } else {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [
+      SystemUiOverlay.top,
+      SystemUiOverlay.bottom,
+    ]);
+    if (envRepo.sdkVersion >= 29) {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
   }

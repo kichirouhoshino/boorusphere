@@ -35,6 +35,9 @@ class _PrecachePostsState extends HookState<_Precacher, _PrecachePostsHook> {
 
   Future<void> _precacheImagePost(Post post, bool og) async {
     if (!post.content.isPhoto || !context.mounted) return;
+    // Delay slightly to give the UI swipe animation a chance to finish smoothly
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (!context.mounted) return;
     final image = ExtendedNetworkImageProvider(
       og ? post.originalFile : post.content.url,
       headers: hook.ref.read(postHeadersFactoryProvider(post)),

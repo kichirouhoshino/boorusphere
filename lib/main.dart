@@ -30,6 +30,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 void main() async {
   setupLogger();
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Custom image cache size to avoid constant eviction and re-decoding lag.
+  PaintingBinding.instance.imageCache
+    ..maximumSizeBytes = 512 * 1024 * 1024 // 512 MB cache size limit
+    ..maximumSize = 500; // Cache up to 500 images
+
   await Hive.initFlutter();
 
   Hive.registerAdapter(ServerAdapter());

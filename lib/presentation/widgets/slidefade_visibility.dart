@@ -45,7 +45,7 @@ class SlideFadeVisibility extends StatelessWidget {
       child: AnimatedOpacity(
         duration: duration,
         opacity: visible ? 1 : 0,
-        child: child,
+        child: RepaintBoundary(child: child),
       ),
     );
   }

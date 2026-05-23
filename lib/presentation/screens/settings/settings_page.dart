@@ -52,6 +52,7 @@ class SettingsPage extends StatelessWidget {
               title: Text(context.t.servers.title),
               children: const [
                 _LoadOriginal(),
+                _VideoAlwaysExternal(),
                 _PostLimit(),
               ],
             ),
@@ -318,6 +319,28 @@ class _LoadOriginal extends ConsumerWidget {
         ref
             .read(contentSettingStateProvider.notifier)
             .setLoadOriginalPost(value);
+      },
+    );
+  }
+}
+
+class _VideoAlwaysExternal extends ConsumerWidget {
+  const _VideoAlwaysExternal();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SwitchListTile(
+      title: Text(context.t.settings.videoAlwaysExternal.title),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(context.t.settings.videoAlwaysExternal.desc),
+      ),
+      value: ref.watch(
+          contentSettingStateProvider.select((it) => it.videoAlwaysExternal)),
+      onChanged: (value) {
+        ref
+            .read(contentSettingStateProvider.notifier)
+            .setVideoAlwaysExternal(value);
       },
     );
   }

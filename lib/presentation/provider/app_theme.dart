@@ -23,13 +23,20 @@ class AppThemeData {
 }
 
 class AppThemeDataNotifier {
-  late AppThemeData _data = _createAppThemeData();
+  AppThemeData? _data;
+  ColorScheme? _lastLight;
+  ColorScheme? _lastDark;
 
-  AppThemeData get data => _data;
+  AppThemeData get data => _data ??= _createAppThemeData();
 
   AppThemeData fillWith({ColorScheme? light, ColorScheme? dark}) {
+    if (_data != null && _lastLight == light && _lastDark == dark) {
+      return _data!;
+    }
+    _lastLight = light;
+    _lastDark = dark;
     _data = _createAppThemeData(light: light, dark: dark);
-    return _data;
+    return _data!;
   }
 
   AppThemeData _createAppThemeData({ColorScheme? light, ColorScheme? dark}) {

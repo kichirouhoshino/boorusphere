@@ -16,31 +16,50 @@ class SearchScreen extends HookConsumerWidget {
         ref.watch(searchBarControllerProvider.select((it) => it.isOpen));
     final animator =
         useAnimationController(duration: const Duration(milliseconds: 300));
-    final animation =
-        CurvedAnimation(parent: animator, curve: Curves.easeInOutCubic);
+    
+    final animation = useMemoized(
+      () => CurvedAnimation(parent: animator, curve: Curves.easeInOutCubic),
+      [animator],
+    );
+
+    final opacityAnimation = useMemoized(
+      () => Tween<double>(begin: 0.5, end: 1.0).animate(animation),
+      [animation],
+    );
+
+    final slideAnimation = useMemoized(
+      () => Tween<Offset>(
+        begin: const Offset(0, 1),
+        end: Offset.zero,
+      ).animate(animation),
+      [animation],
+    );
+
+    useListenable(animator);
 
     useEffect(() {
       isOpen ? animator.forward() : animator.reverse();
     }, [isOpen]);
 
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      children: [
-        FadeTransition(
-          opacity: Tween<double>(
-            begin: 0.5,
-            end: 1,
-          ).animate(animation),
-          child: SlideTransition(
-            position: Tween(
-              begin: const Offset(0, 1),
-              end: const Offset(0, 0),
-            ).animate(animation),
-            child: const SearchSuggestion(),
-          ),
-        ),
-        HomeSearchBar(scrollController: scrollController),
-      ],
+    final isVisible = isOpen || !animator.isDismissed;
+
+    return SizedBox.expand(
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          if (isVisible)
+            FadeTransition(
+              opacity: opacityAnimation,
+              child: SlideTransition(
+                position: slideAnimation,
+                child: RepaintBoundary(
+                  child: SearchSuggestion(isAnimating: animator.isAnimating),
+                ),
+              ),
+            ),
+          HomeSearchBar(scrollController: scrollController),
+        ],
+      ),
     );
   }
 }
